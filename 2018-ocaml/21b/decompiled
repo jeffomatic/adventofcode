@@ -1,0 +1,31 @@
+00: c = 123
+01: c = c & 0x1C8
+02: c = c == 72
+03: goto (c + 3) + 1
+04: goto 1
+05: c = 0
+06: b = c | 0x10000
+07: c = 1250634
+08: e = b & 0xFF
+09: c = c + e
+10: c = c & 0xFFFFFF
+11: c = c * 65899
+12: c = c & 0xFFFFFF
+13: e = 256 > b
+14: goto (e + 14) + 1
+15: goto 17
+16: goto 28
+17: e = 0
+18: d = e + 1
+19: d = d * 256
+20: d = d > b
+21: goto (d + 21) + 1
+22: goto 24
+23: goto 26
+24: e = e + 1
+25: goto 18
+26: b = e
+27: goto 8
+28: e = c == a
+29: goto (e + 29) + 1
+30: goto 6

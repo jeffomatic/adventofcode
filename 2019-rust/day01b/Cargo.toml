@@ -1,0 +1,5 @@
+[package]
+name = "day01b"
+version = "0.1.0"
+authors = ["Jeff Lee <jeffomatic@gmail.com>"]
+edition = "2018"

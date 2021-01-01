@@ -1,0 +1,24 @@
+Disc #1 has 17 positions; at time=0, it is at position 5.
+Disc #2 has 19 positions; at time=0, it is at position 8.
+Disc #3 has 7 positions; at time=0, it is at position 1.
+Disc #4 has 13 positions; at time=0, it is at position 7.
+Disc #5 has 5 positions; at time=0, it is at position 1.
+Disc #6 has 3 positions; at time=0, it is at position 0.
+
+t such that:
+
+t + 1 = 12 mod 17
+t + 2 = 11 mod 19
+t + 3 = 6 mod 7
+t + 4 = 6 mod 13
+t + 5 = 4 mod 5
+t + 6 = 0 mod 3
+
+OR
+
+t = 11 mod 17
+t = 9 mod 19
+t = 3 mod 7
+t = 2 mod 13
+t = 4 mod 5
+t = 0 mod 3

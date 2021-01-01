@@ -1,0 +1,30 @@
+cpy a d
+cpy 4 c
+L3: cpy 633 b
+L4: inc d
+dec b
+jnz b L4
+dec c
+jnz c L3
+L9: cpy d a
+L10: nop
+cpy a b
+cpy 0 a
+L13: cpy 2 c
+L14: jnz b L16
+goto L21
+L16: dec b
+dec c
+jnz c L14
+inc a
+goto L13
+L21: cpy 2 b
+L22: jnz c L24
+goto L27
+L24: dec b
+dec c
+goto L22
+L27: nop
+out b
+jnz a L10
+goto L9

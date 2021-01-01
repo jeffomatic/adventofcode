@@ -1,0 +1,23 @@
+b := 109300
+end := 126300
+h := 0
+
+for {
+  inc := false
+
+  for d := 2; d < b; d += 1 {
+    for e := 2; e < b; e += 1 {
+      inc = (d * e) == b
+    }
+  }
+
+  if inc {
+    h = h + 1
+  }
+
+  if b == end {
+    break
+  }
+
+  b = b + 17
+}
