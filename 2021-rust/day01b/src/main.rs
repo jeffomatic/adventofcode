@@ -9,7 +9,7 @@ fn main() {
 
     let mut res = 0;
     for i in 0..(vals.len() - 3) {
-        if vals[i] + vals[i+1] + vals[i+2] < vals[i+1] + vals[i+2] + vals[i+3] {
+        if vals[i] + vals[i + 1] + vals[i + 2] < vals[i + 1] + vals[i + 2] + vals[i + 3] {
             res += 1;
         }
     }
