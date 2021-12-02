@@ -5,7 +5,7 @@ release_versions = $(patsubst %, %-release, $(folders))
 no_default:
 
 $(folders):
-	@ cargo build --manifest-path $@/Cargo.toml
+	cargo build --manifest-path $@/Cargo.toml
 	@ if [ -f $@/input ]; then cat $@/input | RUST_BACKTRACE=1 $@/target/debug/$@; else RUST_BACKTRACE=1 $@/target/debug/$@; fi
 
 $(release_versions):
