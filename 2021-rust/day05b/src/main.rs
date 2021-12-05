@@ -76,7 +76,7 @@ fn main() {
         }
     }
 
-    let overlaps = counts.iter().map(|(_, c)| c).filter(|c| **c >= 2).count();
+    let overlaps = counts.iter().filter(|(_, c)| **c >= 2).count();
     println!("{}", overlaps);
 }
 
