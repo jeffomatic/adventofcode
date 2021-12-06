@@ -10,7 +10,7 @@ fn main() {
         state[n] += 1;
     }
 
-    let num_cycles = 80;
+    let num_cycles = 256;
     for _ in 0..num_cycles {
         let num_spawning = state[0];
         for i in 0..=7 {
