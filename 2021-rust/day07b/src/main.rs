@@ -15,8 +15,8 @@ fn main() {
     let mut best_cost = i32::MAX;
     for i in min..=max {
         let cost = positions.iter().fold(0, |accum, pos| {
-            let n = (pos - i).abs() + 1;
-            let c = n * (n - 1) / 2;
+            let n = (pos - i).abs();
+            let c = n * (n + 1) / 2;
             accum + c
         });
         best_cost = best_cost.min(cost);
