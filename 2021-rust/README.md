@@ -22,11 +22,13 @@ make day01-release
 
 ## Creating new folders
 
-For new days, I usually just do the follwing:
+To start a new day's problem, I usually just copy the barebones template in `day0`:
 
 ```
-cargo init dayXYZ
+cp -R day0 dayXYZ
 ```
+
+Then I update `dayXYZ/Cargo.toml` so the package name is `dayXYZ` instead of `day0`.
 
 Generally, the second project for each day closely resembles the first project, so I will copy the contents of the first project:
 
@@ -34,7 +36,7 @@ Generally, the second project for each day closely resembles the first project, 
 cp -R day01a day01b
 ```
 
-Because `Cargo.toml` contains the directory name (under the `$.package.name` key), you should make sure to update it after copying.
+As above, make sure to update `Cargo.toml` with an appropriate package name.
 
 ## Some common patterns
 
