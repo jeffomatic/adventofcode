@@ -1,6 +1,6 @@
 # aoc2021-rust
 
-Here are my solutions to [Advent of Code 2020](https://adventofcode.com/2021). This repository is implemented in Rust.
+Here are my solutions to [Advent of Code 2021](https://adventofcode.com/2021). This repository is implemented in Rust.
 
 ## Running programs
 
