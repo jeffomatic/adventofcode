@@ -4,16 +4,16 @@ use std::{
     str::FromStr,
 };
 
-// 0: 6 signals
-// 1: 2 signals
-// 2: 5 signals
-// 3: 5 signals
-// 4: 4 signals
-// 5: 5 signals
-// 6: 6 signals
-// 7: 3 signals
-// 8: 7 signals
-// 9: 6 signals
+// 0: 6 segment
+// 1: 2 segment
+// 2: 5 segment
+// 3: 5 segment
+// 4: 4 segment
+// 5: 5 segment
+// 6: 6 segment
+// 7: 3 segment
+// 8: 7 segment
+// 9: 6 segment
 
 #[derive(Debug)]
 struct Sample {
@@ -93,11 +93,9 @@ fn main() {
             match s.patterns.iter().filter(|p| p.contains(c)).count() {
                 6 => {
                     segment_b_char = c;
-                    continue;
                 }
                 4 => {
                     segment_e_char = c;
-                    continue;
                 }
                 _ => (),
             };
