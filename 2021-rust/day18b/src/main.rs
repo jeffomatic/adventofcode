@@ -1,12 +1,6 @@
 use std::io::{self, Read};
 
 #[derive(Debug, Clone)]
-enum Tree {
-    Pair(Box<Tree>, Box<Tree>),
-    Leaf(u32),
-}
-
-#[derive(Debug, Clone)]
 struct VecTree {
     vals: Vec<u32>,
     depths: Vec<u32>,
@@ -21,45 +15,27 @@ impl VecTree {
     }
 }
 
-fn consume_character(s: &str, c: char) -> &str {
-    assert!(s.starts_with(c));
-    &s[1..]
-}
+fn parse(s: &str) -> VecTree {
+    let mut t = VecTree::new();
 
-fn consume_number_literal(s: &str) -> (u32, &str) {
-    let c = s.chars().next().unwrap();
-    let val = c.to_digit(10).unwrap();
-    (val, &s[1..])
-}
-
-fn parse(s: &str) -> (Tree, &str) {
-    if s.starts_with("[") {
-        let s = consume_character(s, '[');
-        let (left_subtree, s) = parse(s);
-        let s = consume_character(s, ',');
-        let (right_subtree, s) = parse(s);
-        let s = consume_character(s, ']');
-        return (
-            Tree::Pair(Box::new(left_subtree), Box::new(right_subtree)),
-            s,
-        );
-    } else {
-        let (num, s) = consume_number_literal(s);
-        return (Tree::Leaf(num), s);
-    }
-}
-
-fn make_vec_tree(t: &Tree, depth: u32, vt: &mut VecTree) {
-    match t {
-        Tree::Pair(left, right) => {
-            make_vec_tree(left, depth + 1, vt);
-            make_vec_tree(right, depth + 1, vt);
-        }
-        Tree::Leaf(val) => {
-            vt.vals.push(*val);
-            vt.depths.push(depth - 1);
+    let mut depth = 0;
+    for c in s.chars() {
+        match c {
+            '[' => {
+                depth += 1;
+            }
+            ',' => (),
+            ']' => {
+                depth -= 1;
+            }
+            d => {
+                t.vals.push(d.to_digit(10).unwrap());
+                t.depths.push(depth - 1);
+            }
         }
     }
+
+    t
 }
 
 fn explode(t: &mut VecTree) -> bool {
@@ -157,21 +133,16 @@ fn score(t: &mut VecTree) -> u32 {
 }
 
 fn main() {
-    let trees: Vec<Tree> = get_input().lines().map(|line| parse(line).0).collect();
+    let trees: Vec<VecTree> = get_input().lines().map(parse).collect();
+
     let mut best_score = 0;
-
-    for i in 0..trees.len() {
-        for j in 0..trees.len() {
-            let mut it = VecTree::new();
-            make_vec_tree(&trees[i], 0, &mut it);
-
-            let mut jt = VecTree::new();
-            make_vec_tree(&trees[j], 0, &mut jt);
-
-            add_array_tree(&mut it, &mut jt);
-            reduce(&mut it);
-
-            best_score = best_score.max(score(&mut it));
+    for i in trees.iter() {
+        for j in trees.iter() {
+            let mut a = i.clone();
+            let mut b = j.clone();
+            add_array_tree(&mut a, &mut b);
+            reduce(&mut a);
+            best_score = best_score.max(score(&mut a));
         }
     }
 
