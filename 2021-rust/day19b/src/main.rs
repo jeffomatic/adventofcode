@@ -190,8 +190,7 @@ fn main() {
                     continue;
                 }
 
-                for rot in all_rots.iter() {
-                    let b_points = &scanners[b_id][rot];
+                for b_points in scanners[b_id].values() {
                     if let Some(b_to_a) = find_offset(a_points, b_points, min_overlap) {
                         unresolved.remove(&b_id);
                         resolved.insert(b_id, translate_points(b_points, b_to_a));
