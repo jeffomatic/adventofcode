@@ -77,12 +77,6 @@ impl Vec3 {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Xform {
-    axis_rotations: Vec3,
-    translate: Vec3,
-}
-
 fn translate_points(src: &HashSet<Vec3>, translate: Vec3) -> HashSet<Vec3> {
     src.iter().map(|p| *p + translate).collect()
 }
