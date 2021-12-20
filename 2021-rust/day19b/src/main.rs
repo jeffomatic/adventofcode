@@ -115,17 +115,31 @@ fn find_offset(a: &HashSet<Vec3>, b: &HashSet<Vec3>, min_similar: usize) -> Opti
 
 fn all_rotations() -> Vec<Vec3> {
     let mut res = Vec::new();
+    let mut known_rots = HashSet::new();
+
     for xrot in 0..=3 {
         for yrot in 0..=3 {
             for zrot in 0..=3 {
-                res.push(Vec3 {
+                let rot = Vec3 {
                     x: xrot,
                     y: yrot,
                     z: zrot,
-                });
+                };
+                let axes_rotated = (
+                    Vec3 { x: 1, y: 0, z: 0 }.rot(rot),
+                    Vec3 { x: 0, y: 1, z: 0 }.rot(rot),
+                    Vec3 { x: 0, y: 0, z: 1 }.rot(rot),
+                );
+                if known_rots.contains(&axes_rotated) {
+                    continue;
+                }
+
+                known_rots.insert(axes_rotated);
+                res.push(rot);
             }
         }
     }
+
     res
 }
 
@@ -176,27 +190,27 @@ fn main() {
         unknowns.insert(i);
     }
 
-    let mut denylist = HashSet::new();
+    let mut unrelated_scanners = HashSet::new();
+    let all_rots = all_rotations();
 
     'outer: while unknowns.len() > 0 {
         for (a_id, xform) in xforms.clone() {
             let a_points = transform_points(&scanners[a_id], xform);
 
             for b_id in unknowns.clone() {
-                if denylist.contains(&(a_id, b_id)) {
+                if unrelated_scanners.contains(&(a_id, b_id)) {
                     continue;
                 }
 
-                for axis_rotations in all_rotations() {
-                    let b_points = rotate_points(&scanners[b_id], axis_rotations);
+                for rot in all_rots.iter() {
+                    let b_points = rotate_points(&scanners[b_id], *rot);
 
                     if let Some(b_to_a) = find_offset(&a_points, &b_points, min_overlap) {
-                        // a_origin and b_origin are the same point
                         unknowns.remove(&b_id);
                         xforms.insert(
                             b_id,
                             Xform {
-                                axis_rotations,
+                                axis_rotations: *rot,
                                 translate: b_to_a,
                             },
                         );
@@ -204,9 +218,7 @@ fn main() {
                     }
                 }
 
-                // scanner_id and unknown_id don't overlap; add to denylist so
-                // we don't try again.
-                denylist.insert((a_id, b_id));
+                unrelated_scanners.insert((a_id, b_id));
             }
         }
 
