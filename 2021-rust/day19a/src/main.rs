@@ -75,24 +75,12 @@ impl Vec3 {
 
         res
     }
-
-    fn transform(self, xform: Xform) -> Self {
-        self.rot(xform.axis_rotations) + xform.translate
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Xform {
     axis_rotations: Vec3,
     translate: Vec3,
-}
-
-fn transform_points(src: &HashSet<Vec3>, xform: Xform) -> HashSet<Vec3> {
-    src.iter().map(|p| p.transform(xform)).collect()
-}
-
-fn rotate_points(src: &HashSet<Vec3>, rot: Vec3) -> HashSet<Vec3> {
-    src.iter().map(|p| p.rot(rot)).collect()
 }
 
 fn translate_points(src: &HashSet<Vec3>, translate: Vec3) -> HashSet<Vec3> {
@@ -147,6 +135,7 @@ fn main() {
     let input = get_input();
     let mut lines = input.lines().peekable();
     let mut scanners = Vec::new();
+    let all_rots = all_rotations();
 
     while lines.peek().is_some() {
         // consume hyphen
@@ -171,54 +160,50 @@ fn main() {
             });
         }
 
-        scanners.push(points);
+        // Insert the scanner's list of beacon positions, along with a cache of
+        // pre-rotated positions. This allows us to avoid re-processing
+        // rotations during brute-force search.
+        let mut rots: HashMap<Vec3, HashSet<Vec3>> = HashMap::new();
+        for r in all_rots.iter() {
+            rots.insert(*r, points.iter().map(|p| p.rot(*r)).collect());
+        }
+
+        scanners.push(rots);
     }
 
     let min_overlap = 12;
 
-    let mut xforms = HashMap::new();
-    xforms.insert(
-        0,
-        Xform {
-            axis_rotations: Vec3::zero(),
-            translate: Vec3::zero(),
-        },
-    );
+    // `resolved` is a map between scanner IDs and a tuple of the scanner's
+    // beacon positions, transformed to scanner 0's space.
+    let mut resolved = HashMap::new();
+    resolved.insert(0, scanners[0][&Vec3::zero()].clone());
 
-    let mut unknowns = HashSet::new();
+    let mut unresolved = HashSet::new();
     for i in 1..scanners.len() {
-        unknowns.insert(i);
+        unresolved.insert(i);
     }
 
-    let mut unreleated_scanners = HashSet::new();
-    let all_rots = all_rotations();
+    let mut unrelated_scanners = HashSet::new();
 
-    'outer: while unknowns.len() > 0 {
-        for (a_id, xform) in xforms.clone() {
-            let a_points = transform_points(&scanners[a_id], xform);
+    'outer: while unresolved.len() > 0 {
+        for a_id in resolved.keys().cloned() {
+            let a_points = &resolved[&a_id];
 
-            for b_id in unknowns.clone() {
-                if unreleated_scanners.contains(&(a_id, b_id)) {
+            for b_id in unresolved.clone() {
+                if unrelated_scanners.contains(&(a_id, b_id)) {
                     continue;
                 }
 
                 for rot in all_rots.iter() {
-                    let b_points = rotate_points(&scanners[b_id], *rot);
-
-                    if let Some(b_to_a) = find_offset(&a_points, &b_points, min_overlap) {
-                        unknowns.remove(&b_id);
-                        xforms.insert(
-                            b_id,
-                            Xform {
-                                axis_rotations: *rot,
-                                translate: b_to_a,
-                            },
-                        );
+                    let b_points = &scanners[b_id][rot];
+                    if let Some(b_to_a) = find_offset(a_points, b_points, min_overlap) {
+                        unresolved.remove(&b_id);
+                        resolved.insert(b_id, translate_points(b_points, b_to_a));
                         continue 'outer;
                     }
                 }
 
-                unreleated_scanners.insert((a_id, b_id));
+                unrelated_scanners.insert((a_id, b_id));
             }
         }
 
@@ -226,10 +211,8 @@ fn main() {
     }
 
     let mut beacons = HashSet::new();
-    for (scanner_id, xform) in xforms {
-        for p in scanners[scanner_id].iter() {
-            beacons.insert(p.transform(xform));
-        }
+    for scanner_beacons in resolved.values() {
+        beacons = beacons.union(scanner_beacons).map(|v| *v).collect();
     }
 
     println!("{}", beacons.len());
