@@ -38,15 +38,6 @@ impl Type {
             Type::Desert => 1000,
         }
     }
-
-    fn as_char(&self) -> char {
-        match self {
-            Type::Amber => 'A',
-            Type::Bronze => 'B',
-            Type::Copper => 'C',
-            Type::Desert => 'D',
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -199,39 +190,6 @@ fn parse(src: &str) -> Vec<Amphipod> {
         }
     }
     res
-}
-
-fn apply_move(src: &Vec<Amphipod>, mov: (usize, (i32, i32))) -> Vec<Amphipod> {
-    let prev_apod = src[mov.0];
-    let mut next_state = src.clone();
-    next_state[mov.0] = Amphipod {
-        typ: prev_apod.typ,
-        pos: mov.1,
-    };
-    next_state
-}
-
-fn print_state(src: &Vec<Amphipod>) {
-    let by_pos = src.iter().fold(HashMap::new(), |mut accum, a| {
-        accum.insert(a.pos, a.typ);
-        accum
-    });
-
-    for i in 0..5 {
-        for j in 0..13 {
-            if is_occupiable_space((i, j)) {
-                if let Some(typ) = by_pos.get(&(i, j)) {
-                    print!("{}", typ.as_char());
-                } else {
-                    print!(".");
-                }
-            } else {
-                print!("#");
-            }
-        }
-
-        print!("\n");
-    }
 }
 
 fn main() {
