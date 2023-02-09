@@ -7,7 +7,7 @@ export function readInput(): string {
     throw new Error("unable to read from stdin");
   }
 
-  return new TextDecoder().decode(buf.slice(0, nbytes)).trim();
+  return new TextDecoder().decode(buf.slice(0, nbytes)).trimEnd();
 }
 
 export function printFull(item: unknown) {
