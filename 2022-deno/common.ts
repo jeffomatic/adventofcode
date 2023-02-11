@@ -14,9 +14,14 @@ export function readInputLines(): string[] {
   return readInput().split("\n");
 }
 
+const textEnc = new TextEncoder();
+
+export function print(s: string) {
+  Deno.stdout.writeSync(textEnc.encode(s));
+}
+
 export function printFull(item: unknown) {
-  const enc = new TextEncoder();
-  Deno.stdout.writeSync(enc.encode(JSON.stringify(item) + "\n"));
+  Deno.stdout.writeSync(textEnc.encode(JSON.stringify(item) + "\n"));
 }
 
 export function isSuperset<T>(set: Set<T>, subset: Set<T>): boolean {
