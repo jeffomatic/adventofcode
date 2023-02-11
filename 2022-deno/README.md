@@ -43,9 +43,18 @@ cp -R day01a day01b
 See `common.ts` for a list of commonly-used functions. Some examples:
 
 - `readInput()`: Dump the contents of stdin into a string.
+- `readInputLines()`: Splits the contents of stdin along newlines and returns
+  the resulting array of strings.
 - `printFull()`: JSON-serializes the provided argument, and then prints the JSON
   to stdout. Use in place of `console.log` for large data structures.
 
 ## Debugging
 
-TBD...haven't needed it beyond `console.log` yet, but I'm sure I will.
+There is a `launch.json` file for VSCode users. Open the file you want to debug,
+set breakpoints, and then launch the debugging task.
+
+I wasn't able to figure out how to get the debugging workflow to read from
+stdin, so `readInput()` and `readInputLines()` now take an optional argument
+that will cause them to read from a file path rather than from stdin. When
+debugging, pass `import.meta.url` to either of these functions, and they will
+open the `input` file directly.
