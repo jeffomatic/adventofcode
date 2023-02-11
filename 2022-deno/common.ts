@@ -10,6 +10,10 @@ export function readInput(): string {
   return new TextDecoder().decode(buf.slice(0, nbytes)).trimEnd();
 }
 
+export function readInputLines(): string[] {
+  return readInput().split("\n");
+}
+
 export function printFull(item: unknown) {
   const enc = new TextEncoder();
   Deno.stdout.writeSync(enc.encode(JSON.stringify(item) + "\n"));
