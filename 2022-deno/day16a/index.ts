@@ -1,4 +1,4 @@
-import { readInputLines } from "../common.ts";
+import { difference, readInputLines } from "../common.ts";
 
 type Valve = {
   name: string;
@@ -16,125 +16,166 @@ function parseValve(s: string): Valve {
   return { name, flow, neighbors };
 }
 
-type OpenValve = [string, number];
-
-class State {
-  pos: string;
-  openValves: OpenValve[];
-
-  constructor(pos: string, valves: OpenValve[]) {
-    this.pos = pos;
-    this.openValves = valves;
-  }
-
-  move(dst: string): State {
-    return new State(dst, [...this.openValves]);
-  }
-
-  open(valve: string, timeRemaining: number): State {
-    const valves: OpenValve[] = [...this.openValves, [valve, timeRemaining]];
-    valves.sort(State.cmpOpenValve);
-    return new State(this.pos, valves);
-  }
-
-  isValveOpen(valve: string): boolean {
-    return this.openValves.findIndex((v) => v[0] == valve) >= 0;
-  }
-
-  key(): string {
-    return this.pos +
-      "|" +
-      this.openValves.map(State.valveKey).join(".");
-  }
-
-  score(scores: Record<string, number>): number {
-    return this.openValves
-      .map((v) => scores[v[0]] * v[1])
-      .reduce((memo, s) => memo + s);
-  }
-
-  static valveKey([name, timeRemaining]: OpenValve): string {
-    return `${name}:${timeRemaining}`;
-  }
-
-  static cmpOpenValve(a: OpenValve, b: OpenValve): number {
-    const dt = b[1] - a[1];
-    if (dt != 0) {
-      return dt;
-    }
-
-    return a[0].localeCompare(b[0]);
-  }
-}
-
-type SearchNode = [number, State]; // [time, State]
-type Queue = SearchNode[];
-
-function enqueue(q: Queue, node: SearchNode) {
-  q.push(node);
-
-  for (let i = q.length - 1; i > 0; i--) {
-    const left = q[i - 1];
-    const right = q[i];
-    if (left[0] <= right[0]) {
-      break;
-    }
-
-    q[i - 1] = right;
-    q[i] = left;
-  }
-}
-
 const valves = readInputLines(import.meta.url).map(parseValve);
-const scores: Record<string, number> = valves.reduce(
-  (memo, node) => {
-    memo[node.name] = node.flow;
-    return memo;
-  },
-  {} as Record<string, number>,
-);
-const neighbors: Record<string, string[]> = valves.reduce(
-  (memo, node) => {
-    memo[node.name] = node.neighbors;
-    return memo;
-  },
-  {} as Record<string, string[]>,
-);
-const nonzeroScores = valves.map((v) => v.flow).filter((f) => f > 0).length;
-
-const baseState: State = new State("AA", []);
-const q: Queue = [[0, baseState]];
-const visited = new Set<string>([baseState.key()]);
 const maxTime = 30;
-let best = 0;
 
-while (q.length > 0) {
-  const [time, state] = q.shift()!;
-  const options: State[] = [];
+const valvesByName = valves.reduce((memo, v) => {
+  memo[v.name] = v;
+  return memo;
+}, {} as Record<string, Valve>);
+const targetValves = new Set<string>(
+  valves.filter((v) => v.flow > 0).map((v) => v.name),
+);
 
-  // Option 1: spend a minute to open the current valve
-  if (scores[state.pos] > 0 && !state.isValveOpen(state.pos)) {
-    options.push(state.open(state.pos, maxTime - time - 1));
+function edgeName(a: string, b: string): string {
+  return `${a}.${b}`;
+}
+
+function makeEdgeList(): Record<string, number> {
+  const res: Record<string, number> = {};
+  for (const v of valves.filter((v) => v.name == "AA" || v.flow > 0)) {
+    const visited = new Set<string>([v.name]);
+    const q: [string, number][] = [[v.name, 0]];
+
+    while (q.length > 0) {
+      const [name, dist] = q.shift()!;
+      const cur = valvesByName[name];
+
+      if (cur.flow > 0 && dist > 0) {
+        res[edgeName(v.name, cur.name)] = dist;
+      }
+
+      for (const n of cur.neighbors) {
+        if (visited.has(n)) {
+          continue;
+        }
+
+        visited.add(n);
+        q.push([n, dist + 1]);
+      }
+    }
   }
 
-  // Option 2+: move to a neighbor
-  for (const n of neighbors[state.pos]) {
-    options.push(state.move(n));
+  return res;
+}
+
+const edgeList = makeEdgeList();
+
+type Sequence = string[];
+
+function sequenceKey(seq: Sequence): string {
+  return seq.join("");
+}
+
+class SearchCache {
+  public time(seq: Sequence): number {
+    return this.get(seq)[0];
   }
 
-  for (const opt of options) {
-    if (visited.has(opt.key())) {
-      continue;
+  public score(seq: Sequence): number {
+    return this.get(seq)[1];
+  }
+
+  private cache: Record<string, [number, number]> = {};
+
+  private get(seq: Sequence): [number, number] {
+    return (this.cache[this.key(seq)] ?? this.fill(seq));
+  }
+
+  private fill(seq: Sequence): [number, number] {
+    let time = 0;
+    let score = 0;
+    let [cur, ...rest] = seq;
+    const visited = new Set<string>(["AA"]);
+
+    for (const n of rest) {
+      if (!visited.has(n)) {
+        visited.add(n);
+        time += edgeList[edgeName(cur, n)] + 1;
+        score += valvesByName[n].flow * (maxTime - time);
+      } else {
+        time += edgeList[edgeName(cur, n)];
+      }
+
+      cur = n;
     }
 
-    visited.add(opt.key());
+    const entry: [number, number] = [time, score];
+    this.cache[this.key(seq)] = entry;
+    return entry;
+  }
 
-    if (opt.openValves.length == nonzeroScores || time == maxTime) {
-      best = Math.max(best, opt.score(scores));
-    } else {
-      enqueue(q, [time + 1, opt]);
+  private key(path: string[]) {
+    return path.join("");
+  }
+}
+
+const searchCache = new SearchCache();
+
+class SearchQueue {
+  private items: Sequence[] = [];
+  private visited: Set<string> = new Set<string>();
+
+  size(): number {
+    return this.items.length;
+  }
+
+  pop(): Sequence {
+    return this.items.shift()!;
+  }
+
+  enqueue(seq: Sequence) {
+    const k = sequenceKey(seq);
+    if (this.visited.has(k)) {
+      return;
+    }
+
+    this.visited.add(k);
+
+    this.items.push(seq);
+    for (let i = this.items.length - 1; i > 0; i--) {
+      const left = this.items[i - 1];
+      const right = this.items[i];
+      if (searchCache.time(left) <= searchCache.time(right)) {
+        break;
+      }
+
+      this.items[i - 1] = right;
+      this.items[i] = left;
     }
   }
 }
 
-console.log(best);
+function search(): number {
+  const q = new SearchQueue();
+  q.enqueue(["AA"]);
+  const bestAtTime: Record<number, number> = {};
+
+  while (q.size() > 0) {
+    const seq = q.pop();
+
+    const options = difference(targetValves, new Set(seq));
+    for (const opt of options) {
+      const next = [...seq, opt];
+      const time = searchCache.time(next);
+      if (time > maxTime) {
+        continue;
+      }
+
+      // Greedily eliminate next options. If the next option does not provide
+      // at least as good a score as the best we've gotten by this time, then
+      // ignore it. It's not obvious to me that this should be true in general,
+      // but it seems to work for this problem.
+      const best = bestAtTime[time] ?? 0;
+      const score = searchCache.score(next);
+      if (score >= best) {
+        bestAtTime[time] = score;
+        q.enqueue(next);
+      }
+    }
+  }
+
+  return Object.values(bestAtTime).sort((a, b) => b - a)[0];
+}
+
+console.log(search());
