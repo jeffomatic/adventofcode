@@ -92,3 +92,30 @@ export function signWithZero(a: number): number {
 
   return 1;
 }
+export function ArrayEquals<T>(a: T[], b: T[]): boolean {
+  if (a.length != b.length) {
+    return false;
+  }
+
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function ArrayHasPrefix<T>(arr: T[], prefix: T[]): boolean {
+  if (prefix.length > arr.length) {
+    return false;
+  }
+
+  for (let i = 0; i < prefix.length; i++) {
+    if (arr[i] != prefix[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
