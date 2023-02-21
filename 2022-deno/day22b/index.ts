@@ -200,58 +200,112 @@ function doTurn([pos, dir]: State, t: Turn): State {
   return [pos, turn(dir, t)];
 }
 
-function move(pos: Vec2, dir: Dir, map: Map): Vec2 {
-  let nextPos = vec2.add(pos, dirIncr(dir));
+function move(pos: Vec2, dir: Dir, map: Map): [Vec2, Dir] {
+  const [prevRow, prevCol] = pos;
+  let [nextRow, nextCol] = vec2.add(pos, dirIncr(dir));
+  let nextDir = dir;
 
   // wraparound check
-  let [row, col] = nextPos;
   switch (dir) {
     case Dir.N:
-      if (row < map.cols[col][0]) {
-        row = map.cols[col][1];
+      if (nextRow < map.cols[nextCol][0]) {
+        if (prevCol < 50) {
+          nextRow = 50 + prevCol;
+          nextCol = 50;
+          nextDir = Dir.E;
+        } else if (prevCol < 100) {
+          nextRow = 150 + (prevCol - 50);
+          nextCol = 0;
+          nextDir = Dir.E;
+        } else {
+          nextRow = 199;
+          nextCol = prevCol - 100;
+          // no dir change
+        }
       }
       break;
 
     case Dir.S:
-      if (row > map.cols[col][1]) {
-        row = map.cols[col][0];
+      if (nextRow > map.cols[nextCol][1]) {
+        if (prevCol < 50) {
+          nextRow = 0;
+          nextCol = 100 + prevCol;
+          // no dir change
+        } else if (prevCol < 100) {
+          nextRow = 150 + (prevCol - 50);
+          nextCol = 49;
+          nextDir = Dir.W;
+        } else {
+          nextRow = 50 + (prevCol - 100);
+          nextCol = 99;
+          nextDir = Dir.W;
+        }
       }
       break;
 
     case Dir.W:
-      if (col < map.rows[row][0]) {
-        col = map.rows[row][1];
+      if (nextCol < map.rows[nextRow][0]) {
+        if (prevRow < 50) {
+          nextRow = 149 - prevRow;
+          nextCol = 0;
+          nextDir = Dir.E;
+        } else if (prevRow < 100) {
+          nextRow = 100;
+          nextCol = prevRow - 50;
+          nextDir = Dir.S;
+        } else if (prevRow < 150) {
+          nextRow = 149 - prevRow;
+          nextCol = 50;
+          nextDir = Dir.E;
+        } else {
+          nextRow = 0;
+          nextCol = 50 + (prevRow - 150);
+          nextDir = Dir.S;
+        }
       }
       break;
 
     case Dir.E:
-      if (col > map.rows[row][1]) {
-        col = map.rows[row][0];
+      if (nextCol > map.rows[nextRow][1]) {
+        if (prevRow < 50) {
+          nextRow = 149 - prevRow;
+          nextCol = 99;
+          nextDir = Dir.W;
+        } else if (prevRow < 100) {
+          nextRow = 49;
+          nextCol = 100 + (prevRow - 50);
+          nextDir = Dir.N;
+        } else if (prevRow < 150) {
+          nextRow = 149 - prevRow;
+          nextCol = 149;
+          nextDir = Dir.W;
+        } else {
+          nextRow = 149;
+          nextCol = 50 + (prevRow - 150);
+          nextDir = Dir.N;
+        }
       }
       break;
   }
 
-  nextPos = [row, col];
-
   // wall check
+  const nextPos: Vec2 = [nextRow, nextCol];
   if (map.walls.has(vec2.key(nextPos))) {
-    return pos;
+    return [pos, dir];
   }
 
-  return nextPos;
+  return [nextPos, nextDir];
 }
-
-const debugMoves: State[] = [];
 
 function doMove([pos, dir]: State, steps: number, map: Map): State {
   for (let i = 0; i < steps; i++) {
-    const nextPos = move(pos, dir, map);
+    const [nextPos, nextDir] = move(pos, dir, map);
     if (vec2.equal(pos, nextPos)) {
       break;
     }
 
     pos = nextPos;
-    debugMoves.push([pos, dir]);
+    dir = nextDir;
   }
 
   return [pos, dir];
