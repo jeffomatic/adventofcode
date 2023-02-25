@@ -5,4 +5,4 @@ release_versions = $(patsubst %, %-release, $(folders))
 no_default:
 
 $(folders):
-	@ if [ -f $@/input ]; then cat $@/input | deno run --allow-read $@/index.ts; else deno run --allow-read $@/index.ts; fi
+	@ if [ -f $@/input ]; then cat $@/input | deno run --allow-read $@/main.ts; else deno run --allow-read $@/main.ts; fi

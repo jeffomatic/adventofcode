@@ -18,7 +18,7 @@ This works with any directory with a `day` prefix, so there is no need to edit
 the Makefile when adding new project directories.
 
 The `make` rule for each directory will run a script in that directory called
-`index.ts`. You can just keep running this rule for a nice edit-run loop. If a
+`main.ts`. You can just keep running this rule for a nice edit-run loop. If a
 file called `input` exists within the directory, its contents will be piped into
 the running program. For most Advent of Code projects, there is a large, fixed
 string input, so having it available via stdin is helpful.
