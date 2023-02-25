@@ -22,6 +22,11 @@ export function key(v: Vec2): string {
   return `${v[0]}.${v[1]}`;
 }
 
+export function parseKeyInt(s: string): Vec2 {
+  const [a, b] = s.split(".");
+  return [parseInt(a), parseInt(b)];
+}
+
 export function manhattan(v: Vec2): number {
   return Math.abs(v[0]) + Math.abs(v[1]);
 }

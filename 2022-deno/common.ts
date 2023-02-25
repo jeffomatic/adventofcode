@@ -119,3 +119,16 @@ export function ArrayHasPrefix<T>(arr: T[], prefix: T[]): boolean {
 
   return true;
 }
+
+export function iterAll<T>(
+  iter: Iterable<T>,
+  predicate: (val: T) => boolean,
+): boolean {
+  for (const val of iter) {
+    if (!predicate(val)) {
+      return false;
+    }
+  }
+
+  return true;
+}
