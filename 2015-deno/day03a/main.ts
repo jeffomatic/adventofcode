@@ -4,7 +4,7 @@ import * as vec2 from "../vec2.ts";
 
 const input = readInput(import.meta.url);
 
-let pos = vec2.make(0, 0);
+const pos = vec2.make(0, 0);
 const visited = new Set<string>();
 visited.add(vec2.key(pos));
 for (const c of input) {
