@@ -15,12 +15,7 @@ struct Draw {
 
 #[derive(Debug)]
 struct Game {
-    n: i32,
     draws: Vec<Vec<Draw>>,
-}
-
-fn parse_game_number(s: &str) -> i32 {
-    s.trim().split_once(" ").unwrap().1.trim().parse().unwrap()
 }
 
 fn parse_draw(s: &str) -> Draw {
@@ -37,9 +32,8 @@ fn parse_draw(s: &str) -> Draw {
 }
 
 fn parse_game(s: &str) -> Game {
-    let (pre, post) = s.split_once(":").unwrap();
+    let (_, post) = s.split_once(":").unwrap();
     Game {
-        n: parse_game_number(pre),
         draws: post
             .split(";")
             .map(|s| s.split(",").map(parse_draw).collect())
