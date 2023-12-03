@@ -1,6 +1,6 @@
-# aoc2022-rust
+# aoc2023-rust
 
-Here are my solutions to [Advent of Code 2022](https://adventofcode.com/2022). This repository is implemented in Rust.
+Here are my solutions to [Advent of Code 2023](https://adventofcode.com/2023). This repository is implemented in Rust.
 
 ## Running programs
 
@@ -22,21 +22,13 @@ make day01-release
 
 ## Creating new folders
 
-To start a new day's problem, I usually just copy the barebones template in `day0`:
+To start a new day's problem, I usually just copy `day01a`:
 
 ```
-cp -R day0 dayXYZ
+cp -R day01a dayXYZ
 ```
 
-Then I update `dayXYZ/Cargo.toml` so the package name is `dayXYZ` instead of `day0`.
-
-Generally, the second project for each day closely resembles the first project, so I will copy the contents of the first project:
-
-```
-cp -R day01a day01b
-```
-
-As above, make sure to update `Cargo.toml` with an appropriate package name.
+Then I update `dayXYZ/Cargo.toml` so the package name is `dayXYZ` instead of `day01a`.
 
 ## Some common patterns
 
