@@ -1,0 +1,28 @@
+{
+  "name": "2025-node",
+  "version": "1.0.0",
+  "description": "Advent of Code 2025",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit"
+  },
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
+    "@typescript-eslint/parser": "^8.48.0",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
