@@ -13,13 +13,25 @@ const instructions = lines.map((s) => {
 
 let dial = 50;
 let zeroCount = 0;
-for (const n of instructions) {
+for (let n of instructions) {
+  zeroCount += Math.floor(Math.abs(n) / 100);
+
+  n = n % 100;
+  if (n == 0) {
+    continue;
+  }
+
+  const prev = dial;
   dial = (dial + n) % 100;
   if (dial < 0) {
     dial += 100;
   }
 
   if (dial == 0) {
+    zeroCount += 1;
+  } else if (prev != 0 && n > 0 && dial < prev) {
+    zeroCount += 1;
+  } else if (prev != 0 && n < 0 && dial > prev) {
     zeroCount += 1;
   }
 }
