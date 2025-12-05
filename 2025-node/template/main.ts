@@ -1,4 +1,5 @@
-import { readlines } from '../lib/util';
+import { example, input } from '../lib/util';
 
-const lines = readlines(__dirname + '/input');
+const lines = example();
+// const lines = input();
 console.log(JSON.stringify(lines, null, 2));
