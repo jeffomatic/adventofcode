@@ -12,7 +12,7 @@ make day01a
 
 Of course, you can substitute `day01a` with the name of a different directory. This works with any directory with a `day` prefix, so there is no need to edit the Makefile when adding new project directories.
 
-The build rule for each directory will compile the binary and run it. You can just keep running the `make` rule for a nice edit-compile-run loop.
+The build rule for each directory will locate a file called `main.ts` and run it. You can just keep running the `make` rule for a nice edit-compile-run loop.
 
 ## Creating new folders
 
