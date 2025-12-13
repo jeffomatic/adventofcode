@@ -3,13 +3,13 @@ import { example, input } from '../lib/util';
 type Shape = boolean[][];
 type Region = {
   width: number;
-  length: number;
+  height: number;
   presents: number[];
 };
 const shapes: Shape[] = [];
 const regions: Region[] = [];
 
-const lines = example();
+const lines = example(); // 2
 // const lines = input();
 
 let parsingShapes = true;
@@ -30,11 +30,11 @@ for (let i = 0; i < lines.length; i++) {
     shapes.push(shape);
   } else {
     const [dimStr, presentStr] = lines[i].split(': ');
-    const [width, length] = dimStr.split('x').map(Number);
+    const [width, height] = dimStr.split('x').map(Number);
     const presents = presentStr.split(' ').map(Number);
     regions.push({
       width,
-      length,
+      height,
       presents,
     });
   }
@@ -72,63 +72,119 @@ function serializeRegion(r: Set<string>): string {
   return [...r].map(deserializeCoord).sort(compareCoord).map(serializeCoord).join('|');
 }
 
+function printRegion(r: Set<string>, width: number, height: number) {
+  for (let i = 0; i < height; i++) {
+    let rowStr = '';
+    for (let j = 0; j < width; j++) {
+      if (r.has(serializeCoord([j, i]))) {
+        rowStr += '#';
+      } else {
+        rowStr += '.';
+      }
+    }
+    console.log(rowStr);
+  }
+  console.log();
+}
+
+function rotate(present: Shape, rot: number): Shape {
+  let result = structuredClone(present);
+
+  for (let i = 0; i < rot; i++) {
+    result = [
+      [result[2][0], result[1][0], result[0][0]],
+      [result[2][1], result[1][1], result[0][1]],
+      [result[2][2], result[1][2], result[0][2]],
+    ];
+  }
+
+  return result;
+}
+
+function printShape(shape: Shape) {
+  for (let i = 0; i < 3; i++) {
+    let rowStr = '';
+    for (let j = 0; j < 3; j++) {
+      if (shape[i][j]) {
+        rowStr += '#';
+      } else {
+        rowStr += '.';
+      }
+    }
+    console.log(rowStr);
+  }
+  console.log();
+}
+
 class Solver {
   visited = new Set<string>();
 
   constructor(
     public width: number,
-    public length: number,
+    public height: number,
   ) {}
-
-  rotate(present: Shape, rot: number): Shape {
-    let result = structuredClone(present);
-
-    for (let i = 0; i < rot; i++) {
-      result = [
-        [result[2][0], result[1][0], result[0][0]],
-        [result[2][1], result[1][1], result[0][1]],
-        [result[2][2], result[1][2], result[0][2]],
-      ];
-    }
-
-    return result;
-  }
 
   attemptPlace(
     present: Shape,
     x: number,
     y: number,
     rot: number,
-    occupied: Set<string>,
+    region: Set<string>,
   ): Set<string> | undefined {
-    // TODO: this function
+    const rotated = rotate(present, rot);
+    const newCoords: string[] = [];
 
-    return undefined;
+    for (let i = 0; i < 3; i++) {
+      const row = rotated[i];
+      for (let j = 0; j < 3; j++) {
+        if (!row[j]) {
+          continue;
+        }
+
+        const coordStr = serializeCoord([x + j, y + i]);
+        if (region.has(coordStr)) {
+          return undefined;
+        }
+
+        newCoords.push(coordStr);
+      }
+    }
+
+    const res = new Set(region);
+    for (const coord of newCoords) {
+      res.add(coord);
+    }
+
+    return res;
   }
 
   solve(presents: number[], occupied: Set<string>): boolean {
-    // TODO: visited probably needs to include `presents`
-    if (this.visited.has(serializeRegion(occupied))) {
-      return false;
-    }
-
-    this.visited.add(serializeRegion(occupied));
+    // console.log(presents);
 
     if (presents.every((p) => p === 0)) {
       return true;
     }
 
-    presents = [...presents];
-    const presentIndex = presents.findIndex((n) => n > 0);
-    presents[presentIndex] -= 1;
+    // TODO: visited probably needs to include `presents`
+    const visitedKey = presents.join(',') + ':' + serializeRegion(occupied);
+    if (this.visited.has(visitedKey)) {
+      // console.log('dedupe');
+      return false;
+    }
+
+    this.visited.add(visitedKey);
+
+    const newPresents = [...presents];
+    const presentIndex = newPresents.findIndex((n) => n > 0);
+    newPresents[presentIndex] -= 1;
     const shape = shapes[presentIndex];
 
-    for (let i = 0; i < this.width; i++) {
-      for (let j = 0; j < this.length; i++) {
+    for (let y = 0; y < this.height - 2; y++) {
+      for (let x = 0; x < this.width - 2; x++) {
         for (let rot = 0; rot < 4; rot++) {
-          const nextOccupied = this.attemptPlace(shape, i, j, rot, occupied);
+          const nextOccupied = this.attemptPlace(shape, x, y, rot, occupied);
           if (nextOccupied !== undefined) {
-            if (this.solve(presents, nextOccupied)) {
+            if (this.solve(newPresents, nextOccupied)) {
               return true;
             }
           }
@@ -142,7 +198,7 @@ class Solver {
 
 let res = 0;
 for (const region of regions) {
-  const solver = new Solver(region.width, region.length);
+  const solver = new Solver(region.width, region.height);
   if (solver.solve(region.presents, new Set())) {
     res += 1;
   }
