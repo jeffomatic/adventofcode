@@ -38,7 +38,7 @@ function parseMachineSpec(s: string): MachineSpec {
 function apply(state: number[], wiring: ButtonWiring): number[] {
   const next = [...state];
   for (const b of wiring) {
-    next[b] += 1;
+    next[b] -= 1;
   }
 
   return next;
@@ -48,51 +48,80 @@ class Solver {
   memory = new Map<string, number>();
   best = Infinity;
 
-  solve(spec: MachineSpec): number {
-    const joltage = new Array<number>(spec.joltageTarget.length).fill(0);
-    this.recurse(spec, joltage, 0);
-    return this.best;
+  constructor(public spec: MachineSpec) {}
+
+  solve(): number {
+    const joltage = [...this.spec.joltageTarget];
+    return this.recurse(joltage, 0);
   }
 
-  private recurse(spec: MachineSpec, joltage: number[], pressesSoFar: number) {
-    if (pressesSoFar >= this.best) {
-      return;
+  // target joltages: [0, 0, 100, 103, 105] 2 presses
+  // results:
+  // - [0, 0, 0, 56, 70], 5 presses
+  // - [0, 0, 0, 50, 64], 10 presses
+  private recurse(targetJoltages: number[], presses: number): number {
+    const stateKey = targetJoltages.join(',');
+    const prev = this.memory.get(stateKey);
+    if (prev !== undefined && prev <= presses) {
+      return prev;
     }
 
-    for (let i = 0; i < joltage.length; i++) {
-      if (spec.joltageTarget[i] < joltage[i]) {
-        return;
+    if (targetJoltages.every((v) => v === 0)) {
+      this.memory.set(stateKey, presses);
+      return presses;
+    }
+
+    // Find the lowest nonzero joltage
+    let machineIndex = 0;
+    let lowestTarget = Infinity;
+    for (let i = 0; i < targetJoltages.length; i++) {
+      if (targetJoltages[i] > 0 && targetJoltages[i] < lowestTarget) {
+        machineIndex = i;
+        lowestTarget = targetJoltages[i];
       }
     }
 
-    const stateKey = joltage.join();
-    if (spec.joltageTarget.join() === stateKey) {
-      this.best = Math.min(this.best, pressesSoFar);
-      return;
+    const zeroIndexes: number[] = [];
+    for (let i = 0; i < targetJoltages.length; i++) {
+      if (targetJoltages[i] === 0) {
+        zeroIndexes.push(i);
+      }
     }
 
-    const bestForThisState = this.memory.get(stateKey);
-    if (bestForThisState !== undefined && bestForThisState <= pressesSoFar) {
-      return;
+    const buttons = this.spec.wirings
+      .filter((w) => w.includes(machineIndex) && zeroIndexes.every((index) => !w.includes(index)))
+      .sort((b1, b2) => b2.length - b1.length);
+
+    let best = Infinity;
+    for (const button of buttons) {
+      const newTarget = apply(targetJoltages, button);
+      if (!newTarget.every((v) => v >= 0)) {
+        continue;
+      }
+
+      const res = this.recurse(newTarget, presses + 1);
+      best = Math.min(best, res);
     }
 
-    this.memory.set(stateKey, pressesSoFar);
-
-    for (const button of spec.wirings) {
-      const next = apply(joltage, button);
-      const newPresses = pressesSoFar + 1;
-      this.recurse(spec, next, newPresses);
+    if (best !== Infinity) {
+      this.memory.set(stateKey, best);
     }
+
+    return best;
   }
 }
+
+/*
+solve(spec, joltages) -> {number[], presses}[]
+*/
 
 // const lines = example(); // 33
 const lines = input();
 const machineSpecs = lines.map(parseMachineSpec);
 const res = machineSpecs.reduce((accum, m) => {
-  console.log(m);
-  const res = new Solver().solve(m);
-  console.log(res);
+  const res = new Solver(m).solve();
+  console.log(m, res);
+
   return accum + res;
 }, 0);
 console.log(res);
