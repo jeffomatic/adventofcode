@@ -15,7 +15,7 @@ export function readlines(filePath: string, opts: Opts): string[] {
 function loadFile(filename: string, depth = 1, opts: Opts) {
   const e = new Error();
   const line = e.stack!.split('\n')[1 + depth] ?? '';
-  const prefix = line.match(/.*\((.*)main\.ts.*/)![1];
+  const prefix = line.match(/.*\((.*)\/[^/]+\.ts.*/)![1];
   return readlines(path.join(prefix, filename), opts);
 }
 
