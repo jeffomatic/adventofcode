@@ -1,11 +1,72 @@
 import { example, input } from '../lib/util';
 
 // A vertical or horizontal span in a 2D space.
-type Span = {
+type PolygonSpan = {
+  min: number;
+  max: number;
+  crossAxisPos: number;
+
+  // Horizontal spans: -1 -> interior above, 1 -> interior below
+  // Vertical spans: -1 -> interior left, 1 -> interior right
+  interiorDir: number;
+};
+
+type RectEdge = {
   min: number;
   max: number;
   crossAxisPos: number;
 };
+
+enum Winding {
+  CW,
+  CCW,
+}
+
+// Return the winding of the polygon, along with a starting point.
+function checkWinding(points: [number, number][]): Winding {
+  let minSpanY = Infinity;
+  let minSpanStart = -1;
+
+  // check the directionality of the topmost horizontal span
+  for (let i = 0; i < points.length; i++) {
+    const [, ay] = points[i];
+    const [, by] = points[(i + 1) % points.length];
+    if (ay != by) {
+      continue;
+    }
+
+    if (ay < minSpanY) {
+      minSpanStart = i;
+      minSpanY = ay;
+    }
+  }
+
+  const [ax] = points[minSpanStart];
+  const [bx] = points[(minSpanStart + 1) % points.length];
+  return ax < bx ? Winding.CW : Winding.CCW;
+}
+
+function interiorDir(disp: [number, number], winding: Winding): -1 | 1 {
+  const [dx, dy] = disp;
+
+  if (dx < 0) {
+    return winding == Winding.CW ? -1 : 1;
+  }
+
+  if (dx > 0) {
+    return winding == Winding.CW ? 1 : -1;
+  }
+
+  if (dy < 0) {
+    return winding == Winding.CW ? 1 : -1;
+  }
+
+  if (dy > 0) {
+    return winding == Winding.CW ? -1 : 1;
+  }
+
+  throw new Error('zero displacement');
+}
 
 // const lines = example(); // 24
 const lines = input();
@@ -14,26 +75,38 @@ const points: [number, number][] = lines.map(
   (line) => line.split(',').map((n) => parseInt(n)) as [number, number],
 );
 
-const vertBorders: Span[] = [];
-const horzBorders: Span[] = [];
+const vertBorders: PolygonSpan[] = [];
+const horzBorders: PolygonSpan[] = [];
+const winding = checkWinding(points);
 
 for (let i = 0; i < points.length; i++) {
   const [ax, ay] = points[i];
   const [bx, by] = points[(i + 1) % points.length];
+  const disp: [number, number] = [bx - ax, by - ay];
 
   if (ax == bx) {
     vertBorders.push({
       min: Math.min(ay, by),
       max: Math.max(ay, by),
       crossAxisPos: ax,
+      interiorDir: interiorDir(disp, winding),
     });
   } else {
     horzBorders.push({
       min: Math.min(ax, bx),
       max: Math.max(ax, bx),
       crossAxisPos: ay,
+      interiorDir: interiorDir(disp, winding),
     });
   }
+}
+
+function overlap(a: [number, number], b: [number, number]): boolean {
+  return a[0] <= b[1] && b[0] <= a[1];
+}
+
+function flip(dir: 1 | -1): 1 | -1 {
+  return dir == 1 ? -1 : 1;
 }
 
 // Returns the subset of border spans that contain the given value along the primary axis. This will
@@ -41,50 +114,58 @@ for (let i = 0; i < points.length; i++) {
 // direction. The resulting subset is sorted by ascending distance from the cross-axis position; the
 // first result is the closest border to the edge on which the given value lies.
 function getOverlappingExteriorBorders(
-  borders: Span[],
-  value: number,
-  crossAxisPos: number,
+  borders: PolygonSpan[],
+  edge: RectEdge,
   dir: 1 | -1,
-): Span[] {
+): PolygonSpan[] {
   return borders
     .filter((border) => {
-      if (value < border.min || border.max < value) {
+      if (!overlap([edge.min, edge.max], [border.min, border.max])) {
         return false;
       }
 
-      return dir === 1 ? border.crossAxisPos >= crossAxisPos : crossAxisPos >= border.crossAxisPos;
+      return dir === 1
+        ? border.crossAxisPos >= edge.crossAxisPos
+        : edge.crossAxisPos >= border.crossAxisPos;
     })
     .sort((a, b) => dir * (a.crossAxisPos - b.crossAxisPos));
 }
 
+function checkEdgePoint(
+  mainAxisPos: number,
+  crossAxisPos: number,
+  borders: PolygonSpan[],
+  wantDir: 1 | -1,
+): boolean {
+  const span = borders.find((border) => border.min <= mainAxisPos && mainAxisPos <= border.max);
+  if (span === undefined) {
+    return false;
+  }
+
+  // Special case: the point we're checking intersects the border, which is always on "interior"
+  // regardless of the border's interior direction
+  if (crossAxisPos === span.crossAxisPos) {
+    return true;
+  }
+
+  return span.interiorDir == wantDir;
+}
+
 // Determine if an edge is within the polygon. We can use the set of polygon borders that are
 // parallel to the edge.
-function checkEdge(edge: Span, borders: Span[], dir: 1 | -1): boolean {
-  let current = edge.min;
-  while (true) {
-    const overlappingSpans = getOverlappingExteriorBorders(
-      borders,
-      current,
-      edge.crossAxisPos,
-      dir,
-    );
+function checkEdge(edge: RectEdge, borders: PolygonSpan[], dir: 1 | -1): boolean {
+  const overlappingSpans = getOverlappingExteriorBorders(borders, edge, dir);
 
-    // An even number of overlapping spans outside of the edge span means the edge sits outside an
-    // exterior border of the polygon.
-    //
-    // This check will false-positive for cases of degenerate rectangles (those that have height or
-    // width of 1), but that's fine...none of these degenerate rectangles will produce the answer.
-    if (overlappingSpans.length % 2 == 0) {
+  // To optimize: we only need to check one point on the nearest span for each chunk of the edge.
+  // However, doing that requires segmenting the overlapping borders against each other, which
+  // is super annoying to do.
+  for (let i = edge.min; i <= edge.max; i++) {
+    if (!checkEdgePoint(i, edge.crossAxisPos, overlappingSpans, flip(dir))) {
       return false;
     }
-
-    const nearestSpan = overlappingSpans[0];
-    if (nearestSpan.max >= edge.max) {
-      return true;
-    }
-
-    current = nearestSpan.max + 1;
   }
+
+  return true;
 }
 
 let best = -1;
@@ -128,7 +209,6 @@ for (let i = 0; i < points.length - 1; i++) {
       continue;
     }
 
-    console.log('new best', points[i], points[j]);
     best = area;
   }
 }
