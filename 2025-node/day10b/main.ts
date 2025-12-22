@@ -1,127 +1,102 @@
-import { stat } from 'fs';
 import { example, input } from '../lib/util';
+import * as jslpsolver from '@bygdle/javascript-lp-solver';
 
 type ButtonWiring = number[];
 
 type MachineSpec = {
-  lightTarget: boolean[];
-  wirings: ButtonWiring[];
-  joltageTarget: number[];
+  buttons: ButtonWiring[];
+  targets: number[];
 };
 
 function parseMachineSpec(s: string): MachineSpec {
-  let [targetStr, rest] = s.split('] ');
-  targetStr = targetStr.substring(1);
-  const target = targetStr.split('').map((c) => c === '#');
-
-  let [wiringStr, joltageStr] = rest.split(' {');
-  const buttons = wiringStr.split(' ').map(
-    (buttonStr) =>
-      buttonStr
-        .substring(1, buttonStr.length - 1)
+  let [, rest] = s.split('] ');
+  let [buttonsStr, targetsStr] = rest.split(' {');
+  const buttons = buttonsStr.split(' ').map(
+    (s) =>
+      s
+        .substring(1, s.length - 1)
         .split(',')
         .map(Number) as ButtonWiring,
   );
 
-  const joltage = joltageStr
-    .substring(0, joltageStr.length - 1)
+  const targets = targetsStr
+    .substring(0, targetsStr.length - 1)
     .split(',')
     .map(Number);
 
-  return {
-    lightTarget: target,
-    wirings: buttons,
-    joltageTarget: joltage,
-  };
+  return { buttons, targets };
 }
 
-function apply(state: number[], wiring: ButtonWiring): number[] {
-  const next = [...state];
-  for (const b of wiring) {
-    next[b] -= 1;
-  }
+// In the language of jslpsolver, each of our targets is a "constraint". Each button is a "variable"
+// that will contribute a certain amount to each constraint.
+type SolverConstraint = { equal: number };
+type SolverVariable = { cost: 1 } & Record<string, number>;
 
-  return next;
+function targetConstraintName(index: number): string {
+  return `t${index}`;
 }
 
-class Solver {
-  memory = new Map<string, number>();
-  best = Infinity;
-
-  constructor(public spec: MachineSpec) {}
-
-  solve(): number {
-    const joltage = [...this.spec.joltageTarget];
-    return this.recurse(joltage, 0);
-  }
-
-  // target joltages: [0, 0, 100, 103, 105] 2 presses
-  // results:
-  // - [0, 0, 0, 56, 70], 5 presses
-  // - [0, 0, 0, 50, 64], 10 presses
-  private recurse(targetJoltages: number[], presses: number): number {
-    const stateKey = targetJoltages.join(',');
-    const prev = this.memory.get(stateKey);
-    if (prev !== undefined && prev <= presses) {
-      return prev;
-    }
-
-    if (targetJoltages.every((v) => v === 0)) {
-      this.memory.set(stateKey, presses);
-      return presses;
-    }
-
-    // Find the lowest nonzero joltage
-    let machineIndex = 0;
-    let lowestTarget = Infinity;
-    for (let i = 0; i < targetJoltages.length; i++) {
-      if (targetJoltages[i] > 0 && targetJoltages[i] < lowestTarget) {
-        machineIndex = i;
-        lowestTarget = targetJoltages[i];
-      }
-    }
-
-    const zeroIndexes: number[] = [];
-    for (let i = 0; i < targetJoltages.length; i++) {
-      if (targetJoltages[i] === 0) {
-        zeroIndexes.push(i);
-      }
-    }
-
-    const buttons = this.spec.wirings
-      .filter((w) => w.includes(machineIndex) && zeroIndexes.every((index) => !w.includes(index)))
-      .sort((b1, b2) => b2.length - b1.length);
-
-    let best = Infinity;
-    for (const button of buttons) {
-      const newTarget = apply(targetJoltages, button);
-      if (!newTarget.every((v) => v >= 0)) {
-        continue;
-      }
-
-      const res = this.recurse(newTarget, presses + 1);
-      best = Math.min(best, res);
-    }
-
-    if (best !== Infinity) {
-      this.memory.set(stateKey, best);
-    }
-
-    return best;
-  }
+function buttonVarName(index: number): string {
+  return `b${index}`;
 }
 
-/*
-solve(spec, joltages) -> {number[], presses}[]
-*/
+function solve(spec: MachineSpec): number {
+  // Each spec really just describes a linear equation Ax = B:
+  //
+  // - Each column of matrix A is a button wiring, i.e. a vector of 0s or 1s where 1 means the
+  //   button increments the light
+  // - There are as many columns as there are buttons
+  // - Each element of x is how many times you press each button
+  // - B is the target value
+  //
+  // So we are solving for x, and then adding up all the elements.
+  //
+  // Finding a library that does integer linear solving is rough in NodeJS...the best I could find
+  // is an ancient library called javascript-lp-solver, which is broken in the base repo, so I had
+  // to use some rando's fork.
+
+  const constraints: Record<string, SolverConstraint> = {};
+  for (let i = 0; i < spec.targets.length; i++) {
+    constraints[targetConstraintName(i)] = { equal: spec.targets[i] };
+  }
+
+  const variables: Record<string, SolverVariable> = {};
+  const ints: Record<string, 1> = {};
+  for (let i = 0; i < spec.buttons.length; i++) {
+    const sv: SolverVariable = { cost: 1 };
+
+    // Indicate which joltage targets this button will increment.
+    for (const joltage of spec.buttons[i]) {
+      sv[targetConstraintName(joltage)] = 1;
+    }
+
+    const k = buttonVarName(i);
+    variables[k] = sv;
+    ints[k] = 1; // indicate that this variable must yield an integer
+  }
+
+  const solution = jslpsolver.Solve({
+    optimize: 'cost',
+    opType: 'min',
+    constraints,
+    variables,
+    ints,
+  });
+
+  if (!solution.feasible) {
+    throw new Error(`not feasible: ${JSON.stringify(spec)}`);
+  }
+
+  let res = 0;
+  for (let i = 0; i < spec.buttons.length; i++) {
+    res += solution[buttonVarName(i)] ?? 0;
+  }
+
+  return res;
+}
 
 // const lines = example(); // 33
 const lines = input();
 const machineSpecs = lines.map(parseMachineSpec);
-const res = machineSpecs.reduce((accum, m) => {
-  const res = new Solver(m).solve();
-  console.log(m, res);
-
-  return accum + res;
-}, 0);
+const res = machineSpecs.reduce((accum, spec) => accum + solve(spec), 0);
 console.log(res);
